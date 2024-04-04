@@ -1,6 +1,7 @@
 import jwt
 from datetime import datetime, timedelta 
-
+from fastapi import Request
+import main 
 # --------------get alg and sk for jwt------------
 import os
 from dotenv import load_dotenv
@@ -23,8 +24,8 @@ async def create_jwt_token(data: dict):
 async def check_password(passwordlib: str, password: str) -> bool:
     return passwordlib == password
 
-async def check_username(userdata, username: str, password):
-    for user in userdata:
+async def check_username(username: str, password):
+    for user in list(Request.app.database["users"].find()):
         print(user)
         if username == user.get("username") and await check_password(user.get("password"), password):
             return {"username": username}
