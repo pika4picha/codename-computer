@@ -1,6 +1,14 @@
-from pymongo import MongoClient
+from fastapi import APIRouter, Request
+from typing import Annotated, List
+from modules.user_model.usermodel import User
 
-def connect_mongodb():
-    client = MongoClient("mongodb://localhost:27017/")
-    mydb = client["user"]
-    return mydb
+
+router_database = APIRouter()
+
+
+@router_database.get("/users", response_model=List[User])
+async def monget(request: Request):
+    users = list(request.app.database["users"].find())
+    # for user in users:
+    #     user['_id'] = str(user['_id'])
+    return users

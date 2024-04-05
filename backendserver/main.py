@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, List
 
 from fastapi import Depends, FastAPI, Response, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
@@ -7,34 +7,36 @@ from fastapi.security import OAuth2PasswordBearer
 import modules.auth_user.auth as auth_user
 import modules.auth_user.depends as depends 
 # -----------------------------------
-from typing import List
 
 # -------import user model-----------
 from modules.user_model.usermodel import User
 # -----------------------------------
-from pymongo import MongoClient
-import os
 
+
+# ------------import enviroment-----------------------
 from dotenv import dotenv_values
-
 config = dotenv_values(".env")
+# ----------------------------------------------------
 
 
+# -------------create fastapi app---------------------
 app = FastAPI(
     title="test webapp",
     version="0.2.0"
 
 )
-
-USERS_DATA = [
-    {"username": "admin", "password": "adminpass"}
-]
+from modules.database.database import router_database
+app.include_router(router_database)
+# ----------------------------------------------------
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+# -----------------connect to mongodb-----------------
+from pymongo import MongoClient
+
 @app.on_event("startup")
 def startup_db_client():
-    app.mongodb_client = MongoClient(config["URI"])
+    app.mongodb_client = MongoClient(config["URL"])
     app.database = app.mongodb_client[config["DB_NAME"]]
     print(app.database)
     print("Connected to the MongoDB database!")
@@ -42,6 +44,8 @@ def startup_db_client():
 @app.on_event("shutdown")
 def shutdown_db_client():
     app.mongodb_client.close()
+# ----------------------------------------------------
+
 
 @app.post("/login")
 async def auth(response: Response, data: User):
@@ -60,8 +64,3 @@ async def register(request: Request, user: User = Depends(depends.get_user_from_
     if not access_token:
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED)
     return user
-
-@app.get("/", response_model=List[User])
-async def monget(request: Request):
-    users = list(request.app.database["users"].find())
-    return users
